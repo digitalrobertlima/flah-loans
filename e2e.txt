@@ -1,0 +1,21 @@
+Fork em http://127.0.0.1:8545 · bloco 97688357
+Contrato implantado: 0x6F9D338d985b0539ef07d16e82C12031628DB535
+✓ burner autorizada (setExecutor)
+Reserva de WPOL no par QuickSwap V2 WPOL/USDC.e: 3564723.6335177943551647
+Baleia despejou 1/4 da reserva de WPOL na QuickSwap V2
+   [info] Carregando ethers.js e testando os RPCs públicos…
+   [ok] RPCs online: 1/1 · usando http://127.0.0.1:8545 (2 ms)
+   [ok] ethers 6.13.4 pronto · RPC ativo: http://127.0.0.1:8545
+✓ preço do WPOL lido on-chain: $0.072715
+Top 5 rotas encontradas pelo scanner:
+✗ scanner encontrou rota verde (lucrativa) sozinho
+✗ melhor rota recompra WPOL na QuickSwap V2 (onde ficou barato)
+   [ok] Contrato conectado: 0x6F9D338d985b0539ef07d16e82C12031628DB535 · dono 0x5519B41aD245d6a3b052c37B8E9cb9E63adB47B0 · 0 arbitragens feitas
+   [ok] Burner wallet carregada (só na memória): 0xdF53d2Dd77572095b3c276e633C336FbC71f9Dbf
+✓ runner reconhece a burner como autorizada
+TypeError: Cannot read properties of undefined (reading 'pairLabel')
+    at ArbRunner.executeOpportunity (file:///home/runner/work/flah-loans/flah-loans/js/runner.js:338:113)
+    at file:///home/runner/work/flah-loans/flah-loans/tools/e2e-fork.mjs:129:28
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+
+E2E: 3 falha(s).

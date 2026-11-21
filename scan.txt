@@ -1,0 +1,101 @@
+[info] Carregando ethers.js e testando os RPCs públicos…
+[ok] RPCs online: 8/10 · usando https://polygon.drpc.org (78 ms)
+[ok] ethers 6.13.4 pronto · RPC ativo: https://polygon.drpc.org
+
+RPCs:
+  ● https://polygon.drpc.org 78 ms
+  ● https://1rpc.io/matic 127 ms
+  ● https://polygon.publicnode.com 146 ms
+  ● https://polygon-bor-rpc.publicnode.com 148 ms
+  ● https://polygon-mainnet.gateway.tatum.io 216 ms
+  ● https://polygon.api.onfinality.io/public 269 ms
+  ● https://tenderly.rpc.polygon.community 277 ms
+  ● https://rpc-mainnet.matic.quiknode.pro 420 ms
+  ○ https://polygon-public.nodies.app server response 403 Forbidden
+  ○ https://polygon.llamarpc.com getaddrinfo ENOTFOUND polygon.llamarpc.com
+
+Tokens:
+✓ USDC    0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359 symbol=USDC decimals=6 (esperado 6)
+✓ USDC.e  0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174 symbol=USDC decimals=6 (esperado 6)
+✓ USDT    0xc2132D05D31c914a87C6611C10748AEb04B58e8F symbol=USDT0 decimals=6 (esperado 6)
+✓ WETH    0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619 symbol=WETH decimals=18 (esperado 18)
+✓ WPOL    0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270 symbol=WPOL decimals=18 (esperado 18)
+✓ WBTC    0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6 symbol=WBTC decimals=8 (esperado 8)
+✓ DAI     0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063 symbol=DAI decimals=18 (esperado 18)
+✓ LINK    0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39 symbol=LINK decimals=18 (esperado 18)
+✓ AAVE    0xD6DF932A45C0f255f85145f286eA0b292B21C90B symbol=AAVE decimals=18 (esperado 18)
+
+Varrendo todos os pares…
+✓ Taxa do flash loan lida on-chain: 5 bps (0.05%)
+✓ Preço do POL on-chain: $0.072715
+Preços: {
+  USDC: 1,
+  'USDC.e': 1,
+  USDT: 1,
+  DAI: 1,
+  WETH: 1451.23,
+  WPOL: 0.072715,
+  WBTC: 1174.1,
+  LINK: 8.07647,
+  AAVE: 92.3182
+}
+Gás: 287.3 gwei (base 0.0 + gorjeta 39.5)
+
+Aave V3 (flash loan):
+  USDC    OK       ativo=true pausado=false congelado=false flash=true disponível≈9,078,794
+  USDT    OK       ativo=true pausado=false congelado=false flash=true disponível≈14,820,973
+  USDC.e  OK       ativo=true pausado=false congelado=true flash=true disponível≈363,713
+  DAI     OK       ativo=true pausado=false congelado=false flash=true disponível≈831,794
+  WETH    OK       ativo=true pausado=false congelado=false flash=true disponível≈10,565
+  WPOL    OK       ativo=true pausado=false congelado=false flash=true disponível≈26,482,606
+  WBTC    OK       ativo=true pausado=false congelado=false flash=true disponível≈859
+  LINK    OK       ativo=true pausado=false congelado=false flash=true disponível≈134,490
+✓ Leitura das reservas da Aave
+
+Cotações por DEX (compra, todos os pares):
+✓ Uniswap V3    63/144 cotações com retorno
+✓ QuickSwap V3  24/36 cotações com retorno
+✓ QuickSwap V2  35/36 cotações com retorno
+✓ Rotas avaliadas: 278
+
+Melhor rota de cada par (empréstimo de $10.000):
+  USDC / USDT0     UNI V3 0.01% → QS V3         spread  -0.0671%  líquido -11.72 USD
+  USDC.e / DAI     QS V3 → UNI V3 0.01%         spread  -0.0883%  líquido -13.84 USD
+  USDT0 / USDC.e   UNI V3 0.01% → UNI V3 0.05%  spread  -0.1090%  líquido -15.92 USD
+  USDC / USDC.e    UNI V3 0.01% → QS V3         spread  -0.1966%  líquido -24.68 USD
+  USDT0 / DAI      UNI V3 0.01% → UNI V3 0.3%   spread  -0.3579%  líquido -40.80 USD
+  WETH / WBTC      UNI V3 0.05% → QS V3         spread  -1.6661%  líquido -171.63 USD
+  WETH / LINK      UNI V3 0.05% → UNI V3 0.3%   spread  -1.7160%  líquido -176.61 USD
+  WETH / WPOL      QS V2 → UNI V3 0.05%         spread  -8.3046%  líquido -835.48 USD
+  USDC / WETH      QS V3 → UNI V3 0.05%         spread  -8.3523%  líquido -840.24 USD
+  USDC.e / WETH    UNI V3 0.3% → QS V2          spread  -8.9807%  líquido -903.08 USD
+  WBTC / USDC      UNI V3 0.05% → UNI V3 0.3%   spread  -9.6541%  líquido -970.42 USD
+  USDT0 / WETH     UNI V3 0.05% → UNI V3 0.3%   spread -10.3902%  líquido -1044.04 USD
+  USDC.e / WPOL    UNI V3 0.05% → QS V2         spread -11.8275%  líquido -1187.76 USD
+  USDC.e / WBTC    QS V3 → UNI V3 0.05%         spread -13.7348%  líquido -1378.50 USD
+  USDT0 / WPOL     UNI V3 0.05% → QS V2         spread -16.8553%  líquido -1690.54 USD
+  WETH / AAVE      UNI V3 0.3% → QS V2          spread -37.4945%  líquido -3754.46 USD
+  USDC / WPOL      UNI V3 0.05% → QS V3         spread -49.7776%  líquido -4982.78 USD
+  WPOL / WBTC      QS V2 → UNI V3 0.3%          spread -74.1688%  líquido -7421.90 USD
+  DAI / WPOL       UNI V3 0.3% → QS V2          spread -80.4463%  líquido -8049.64 USD
+  USDC / LINK      QS V3 → UNI V3 0.3%          spread -82.3739%  líquido -8242.41 USD
+  USDC.e / AAVE    QS V2 → UNI V3 0.3%          spread -92.8939%  líquido -9294.40 USD
+  WPOL / AAVE      UNI V3 0.3% → QS V2          spread -98.2987%  líquido -9834.89 USD
+  WPOL / LINK      UNI V3 0.05% → QS V2         spread -98.6864%  líquido -9873.65 USD
+  USDT0 / WBTC     QS V2 → UNI V3 0.3%          spread -99.0812%  líquido -9913.14 USD
+  DAI / WETH       QS V2 → QS V3                spread -99.2300%  líquido -9928.02 USD
+  USDC.e / LINK    QS V3 → UNI V3 0.3%          spread -99.3620%  líquido -9941.22 USD
+  USDC / DAI       UNI V3 0.3% → QS V3          spread -99.6344%  líquido -9968.45 USD
+  DAI / WBTC       UNI V3 0.3% → QS V2          spread -99.8916%  líquido -9994.17 USD
+  WBTC / LINK      QS V2 → UNI V3 0.3%          spread -99.9937%  líquido -10004.38 USD
+  DAI / LINK       UNI V3 0.3% → QS V2          spread -99.9947%  líquido -10004.48 USD
+  LINK / AAVE      UNI V3 1% → QS V2            spread -99.9970%  líquido -10004.71 USD
+  USDT0 / AAVE     UNI V3 0.3% → QS V3          spread -99.9974%  líquido -10004.75 USD
+  USDT0 / LINK     QS V2 → UNI V3 0.3%          spread -99.9975%  líquido -10004.76 USD
+  DAI / AAVE       QS V2 → UNI V3 0.3%          spread -99.9997%  líquido -10004.98 USD
+  USDC / AAVE      UNI V3 0.3% → UNI V3 1%      spread -99.9997%  líquido -10004.99 USD
+  WBTC / AAVE      UNI V3 0.3% → QS V2          spread -99.9999%  líquido -10005.01 USD
+
+278 rotas em 3 varreduras · tempo por varredura: 449 / 421 / 235 ms
+
+Scanner ao vivo OK.

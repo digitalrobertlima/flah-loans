@@ -1,0 +1,15 @@
+✓ executeArbitrage(address,uint256,(address,(uint8,address,uint24),(uint8,address,uint24),uint256,uint256))  0x2f92f025
+✓ flashLoanFeeBps()  0xc0c7347e
+✓ isExecutor(address)  0xdebfda30
+✓ owner()  0x8da5cb5b
+✓ pendingOwner()  0xe30c3978
+✓ routerAllowed(address)  0x38e35102
+✓ setExecutor(address,bool)  0x1e1bff3f
+✓ setRouter(address,bool)  0xc3c64674
+✓ totalProfitByAsset(address)  0x5c6294d3
+✓ totalTrades()  0xe275c997
+✓ withdrawNative(uint256)  0x84276d81
+✓ withdrawToken(address,uint256)  0x9e281a98
+✓ evento ArbitrageExecuted(address,address,uint256,uint256,address,address,address)
+
+ABI do PWA idêntica à do contrato compilado.

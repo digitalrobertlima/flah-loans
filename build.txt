@@ -1,0 +1,233 @@
+forge Version: 1.10.0
+Commit SHA: 083e22994195d6a7e3ad3104d0b57f478c9b9062
+Build Timestamp: 2026-11-19T15:37:35.100584945Z (1795102655)
+Build Profile: build
+Compiling 21 files with Solc 0.8.24
+Solc 0.8.24 finished in 1.10s
+Compiler run successful!
+
+╭-----------------------+------------------+-------------------+--------------------+---------------------╮
+| Contract              | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
++=========================================================================================================+
+| FlashArbitragePolygon | 8,195            | 9,151             | 16,381             | 40,001              |
+╰-----------------------+------------------+-------------------+--------------------+---------------------╯
+
+warning[missing-events-access-control]: `isExecutor` is changed without an event but is used for access control
+    ╭▸ contracts/FlashArbitragePolygon.sol:386:9
+    │
+386 │         isExecutor[account] = allowed;
+    │         ━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[reentrancy-no-eth]: external call can be reentered before `_lock` is updated
+    ╭▸ contracts/FlashArbitragePolygon.sol:276:9
+    │
+276 │         POOL.flashLoanSimple(address(this), asset, amount, abi.encode(p), 0);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/FlashArbitragePolygon.sol:266:9
+    │
+266 │         nonReentrant
+    │         ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ contracts/FlashArbitragePolygon.sol:269:17
+    │
+269 │         require(block.timestamp <= p.deadline, "Expirado");
+    │                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/FlashArbitragePolygon.sol:289:9
+    │
+289 │         emit ArbitrageExecuted(asset, p.tokenMid, amount, profit, p.buy.router, p.sell.router, msg.sender);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[unused-return]: return value of an external call is not used
+    ╭▸ contracts/FlashArbitragePolygon.sol:339:13
+    │
+339 │ ┏             IUniswapV3SwapRouter(leg.router).exactInputSingle(
+340 │ ┃                 IUniswapV3SwapRouter.ExactInputSingleParams({
+341 │ ┃                     tokenIn: tokenIn,
+342 │ ┃                     tokenOut: tokenOut,
+    ‡ ┃
+349 │ ┃                 })
+350 │ ┃             );
+    │ ┗━━━━━━━━━━━━━┛
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[unused-return]: return value of an external call is not used
+    ╭▸ contracts/FlashArbitragePolygon.sol:352:13
+    │
+352 │ ┏             IAlgebraSwapRouter(leg.router).exactInputSingle(
+353 │ ┃                 IAlgebraSwapRouter.ExactInputSingleParams({
+354 │ ┃                     tokenIn: tokenIn,
+355 │ ┃                     tokenOut: tokenOut,
+    ‡ ┃
+361 │ ┃                 })
+362 │ ┃             );
+    │ ┗━━━━━━━━━━━━━┛
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[unused-return]: return value of an external call is not used
+    ╭▸ contracts/FlashArbitragePolygon.sol:367:13
+    │
+367 │             IUniswapV2Router02(leg.router).swapExactTokensForTokens(amountIn, 0, path, address(this), deadline);
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/FlashArbitragePolygon.sol:416:78
+    │
+416 │     function withdrawToken(address token, uint256 amount) external onlyOwner nonReentrant {
+    │                                                                              ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-eth]: uncapped ETH transfer can be reentered before `_lock` is updated
+    ╭▸ contracts/FlashArbitragePolygon.sol:429:22
+    │
+429 │         (bool ok,) = payable(owner).call{value: value}("");
+    │                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/FlashArbitragePolygon.sol:425:64
+    │
+425 │     function withdrawNative(uint256 amount) external onlyOwner nonReentrant {
+    │                                                                ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/FlashArbitragePolygon.sol:431:9
+    │
+431 │         emit Withdrawn(address(0), owner, value);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+Compiling 21 files with Solc 0.8.20
+Solc 0.8.20 finished in 1.10s
+Compiler run successful!
+warning[missing-events-access-control]: `isExecutor` is changed without an event but is used for access control
+    ╭▸ contracts/FlashArbitragePolygon.sol:386:9
+    │
+386 │         isExecutor[account] = allowed;
+    │         ━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[reentrancy-no-eth]: external call can be reentered before `_lock` is updated
+    ╭▸ contracts/FlashArbitragePolygon.sol:276:9
+    │
+276 │         POOL.flashLoanSimple(address(this), asset, amount, abi.encode(p), 0);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/FlashArbitragePolygon.sol:266:9
+    │
+266 │         nonReentrant
+    │         ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ contracts/FlashArbitragePolygon.sol:269:17
+    │
+269 │         require(block.timestamp <= p.deadline, "Expirado");
+    │                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/FlashArbitragePolygon.sol:289:9
+    │
+289 │         emit ArbitrageExecuted(asset, p.tokenMid, amount, profit, p.buy.router, p.sell.router, msg.sender);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[unused-return]: return value of an external call is not used
+    ╭▸ contracts/FlashArbitragePolygon.sol:339:13
+    │
+339 │ ┏             IUniswapV3SwapRouter(leg.router).exactInputSingle(
+340 │ ┃                 IUniswapV3SwapRouter.ExactInputSingleParams({
+341 │ ┃                     tokenIn: tokenIn,
+342 │ ┃                     tokenOut: tokenOut,
+    ‡ ┃
+349 │ ┃                 })
+350 │ ┃             );
+    │ ┗━━━━━━━━━━━━━┛
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[unused-return]: return value of an external call is not used
+    ╭▸ contracts/FlashArbitragePolygon.sol:352:13
+    │
+352 │ ┏             IAlgebraSwapRouter(leg.router).exactInputSingle(
+353 │ ┃                 IAlgebraSwapRouter.ExactInputSingleParams({
+354 │ ┃                     tokenIn: tokenIn,
+355 │ ┃                     tokenOut: tokenOut,
+    ‡ ┃
+361 │ ┃                 })
+362 │ ┃             );
+    │ ┗━━━━━━━━━━━━━┛
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[unused-return]: return value of an external call is not used
+    ╭▸ contracts/FlashArbitragePolygon.sol:367:13
+    │
+367 │             IUniswapV2Router02(leg.router).swapExactTokensForTokens(amountIn, 0, path, address(this), deadline);
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/FlashArbitragePolygon.sol:416:78
+    │
+416 │     function withdrawToken(address token, uint256 amount) external onlyOwner nonReentrant {
+    │                                                                              ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-eth]: uncapped ETH transfer can be reentered before `_lock` is updated
+    ╭▸ contracts/FlashArbitragePolygon.sol:429:22
+    │
+429 │         (bool ok,) = payable(owner).call{value: value}("");
+    │                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/FlashArbitragePolygon.sol:425:64
+    │
+425 │     function withdrawNative(uint256 amount) external onlyOwner nonReentrant {
+    │                                                                ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/FlashArbitragePolygon.sol:431:9
+    │
+431 │         emit Withdrawn(address(0), owner, value);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+

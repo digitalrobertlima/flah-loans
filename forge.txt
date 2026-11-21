@@ -1,0 +1,40 @@
+No files changed, compilation skipped
+
+Ran 16 tests for test/FlashArbitragePolygon.t.sol:FlashArbitragePolygonForkTest
+[PASS] test_AdminFunctionsOnlyOwner() (gas: 165184)
+[PASS] test_DeployConfig() (gas: 90744)
+Logs:
+  taxa do flash loan Aave (bps): 5
+
+[PASS] test_ExecuteOperationOnlyFromPool() (gas: 34302)
+[PASS] test_ExpiredDeadline() (gas: 44429)
+[PASS] test_ForeignFlashLoanIsRejected() (gas: 124822)
+[PASS] test_InvalidPair() (gas: 44758)
+[PASS] test_OnlyOwnerOrExecutorCanArbitrage() (gas: 41432)
+[PASS] test_OwnershipIsTwoStep() (gas: 138978)
+[PASS] test_PreexistingBalanceIsNotProfit() (gas: 425696)
+[PASS] test_Profit_QuickV2_to_UniV3() (gas: 7909828)
+Logs:
+  lucro (wei do ativo): 537480587846145156930750
+  gas usado pela arbitragem: 4071855
+
+[PASS] test_Profit_UniV3_to_QuickV2() (gas: 5375622)
+Logs:
+  melhor faixa Uniswap V3 (fee): 500
+  lucro (wei do ativo): 8944019093256211734263
+  gas usado pela arbitragem: 688131
+
+[PASS] test_Profit_UniV3_to_QuickV3Algebra() (gas: 4335960)
+Logs:
+  WPOL no pool Algebra: 385381516119362617496921
+  melhor faixa Uniswap V3 (fee): 500
+  lucro (wei do ativo): 33472766758032595273888
+  gas usado pela arbitragem: 741184
+
+[PASS] test_RevertsWithoutProfit_QuickV2RoundTrip() (gas: 356973)
+[PASS] test_RevertsWithoutProfit_UniV3RoundTrip() (gas: 376148)
+[PASS] test_RouterMustBeWhitelisted() (gas: 49198)
+[PASS] test_WithdrawTokenAndNative() (gas: 289978)
+Suite result: ok. 16 passed; 0 failed; 0 skipped; finished in 86.12s (206.13s CPU time)
+
+Ran 1 test suite in 86.12s (86.12s CPU time): 16 tests passed, 0 failed, 0 skipped (16 total tests)
