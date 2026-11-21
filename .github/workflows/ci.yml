@@ -1,0 +1,122 @@
+name: CI
+
+# Testa tudo a cada push (gratuito em repositório público):
+#  1. Compila o contrato (Solidity 0.8.24 e o mínimo 0.8.20)
+#  2. Testes Solidity num FORK REAL da Polygon (Aave, Uniswap e QuickSwap de verdade)
+#  3. Confere que a ABI usada pelo PWA é igual à do contrato
+#  4. Scanner ao vivo, somente leitura, contra RPCs públicos
+#  5. Ponta a ponta: motor do PWA + contrato + piloto automático num fork (anvil)
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write # usado só para publicar logs quando o branch começa com "dev"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL || 'https://polygon-bor-rpc.publicnode.com' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: foundry-rs/foundry-toolchain@v1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Dependências (forge-std + ethers)
+        run: |
+          mkdir -p logs
+          git clone --depth 1 https://github.com/foundry-rs/forge-std lib/forge-std
+          npm install --no-audit --no-fund
+
+      - name: Sintaxe dos arquivos JS
+        id: syntax
+        continue-on-error: true
+        run: |
+          for f in app.js sw.js js/*.js bot/*.mjs tools/*.mjs; do node --check "$f" || exit 1; done 2>&1 | tee logs/syntax.txt
+          python3 -m json.tool manifest.json > /dev/null
+
+      - name: Compilar contrato
+        id: build
+        continue-on-error: true
+        run: |
+          forge --version | tee logs/build.txt
+          forge build --sizes 2>&1 | tee -a logs/build.txt
+          FOUNDRY_EVM_VERSION=shanghai forge build --use 0.8.20 --out out-0820 --cache-path cache-0820 2>&1 | tee -a logs/build.txt
+
+      - name: Bloco do fork
+        run: |
+          BN=$(cast block-number --rpc-url "$POLYGON_RPC_URL")
+          echo "FORK_BLOCK=$((BN - 5))" >> "$GITHUB_ENV"
+          echo "Fork no bloco $((BN - 5))" | tee logs/fork.txt
+
+      - name: Testes Solidity no fork da Polygon
+        id: forge
+        continue-on-error: true
+        run: forge test --fork-url "$POLYGON_RPC_URL" --fork-block-number "$FORK_BLOCK" -vvv 2>&1 | tee logs/forge.txt
+
+      - name: ABI do PWA = ABI do contrato
+        id: abi
+        continue-on-error: true
+        run: node tools/check-abi.mjs 2>&1 | tee logs/abi.txt
+
+      - name: Scanner ao vivo (somente leitura)
+        id: scan
+        continue-on-error: true
+        run: node tools/scan-once.mjs 2>&1 | tee logs/scan.txt
+
+      - name: E2E no fork (anvil + motor do PWA)
+        id: e2e
+        continue-on-error: true
+        run: |
+          anvil --fork-url "$POLYGON_RPC_URL" --fork-block-number "$FORK_BLOCK" --port 8545 > logs/anvil.txt 2>&1 &
+          for i in $(seq 1 90); do cast block-number --rpc-url http://127.0.0.1:8545 >/dev/null 2>&1 && break; sleep 1; done
+          node tools/e2e-fork.mjs 2>&1 | tee logs/e2e.txt
+
+      - name: Publicar logs (somente branches dev*)
+        if: always() && startsWith(github.ref_name, 'dev')
+        run: |
+          {
+            echo "commit=${{ github.sha }}"
+            echo "syntax=${{ steps.syntax.outcome }}"
+            echo "build=${{ steps.build.outcome }}"
+            echo "forge=${{ steps.forge.outcome }}"
+            echo "abi=${{ steps.abi.outcome }}"
+            echo "scan=${{ steps.scan.outcome }}"
+            echo "e2e=${{ steps.e2e.outcome }}"
+          } > logs/summary.txt
+          tail -c 200000 logs/anvil.txt > logs/anvil-tail.txt 2>/dev/null || true
+          rm -f logs/anvil.txt
+          mkdir -p /tmp/ci-logs && cp -r logs/. /tmp/ci-logs/
+          cd /tmp/ci-logs
+          git init -q -b ci-logs
+          git config user.name "ci-logs"
+          git config user.email "ci-logs@users.noreply.github.com"
+          git add -A
+          git commit -qm "logs ${{ github.sha }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-logs
+
+      - name: Resultado
+        if: always()
+        run: |
+          echo "sintaxe=${{ steps.syntax.outcome }} build=${{ steps.build.outcome }} forge=${{ steps.forge.outcome }} abi=${{ steps.abi.outcome }} scan=${{ steps.scan.outcome }} e2e=${{ steps.e2e.outcome }}"
+          for s in "${{ steps.syntax.outcome }}" "${{ steps.build.outcome }}" "${{ steps.forge.outcome }}" "${{ steps.abi.outcome }}" "${{ steps.e2e.outcome }}"; do
+            [ "$s" = "success" ] || exit 1
+          done
+          # o scanner ao vivo depende de RPCs públicos: falha vira aviso, não quebra o CI
+          [ "${{ steps.scan.outcome }}" = "success" ] || echo "::warning::Scanner ao vivo falhou (RPC público instável?)"

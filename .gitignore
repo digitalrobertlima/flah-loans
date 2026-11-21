@@ -1,0 +1,18 @@
+# Foundry
+out/
+out-*/
+cache/
+cache-*/
+lib/
+broadcast/
+
+# Node
+node_modules/
+package-lock.json
+
+# Logs locais
+logs/
+
+# Segredos: NUNCA versionar chaves privadas
+.env
+*.key

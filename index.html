@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh https://cdn.jsdelivr.net; connect-src 'self' https: wss: http://127.0.0.1:* http://localhost:*; img-src 'self' data:; style-src 'self' 'unsafe-inline'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>FLASH//ARB · Scanner de arbitragem Polygon</title>
+  <meta name="description" content="Scanner on-chain em tempo real e executor de arbitragem atômica com flash loan (Aave V3) na Polygon. 100% estático, sem servidor.">
+  <meta name="theme-color" content="#05070d">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#board">Pular para as oportunidades</a>
+
+  <!-- ═══════════════ TOPO ═══════════════ -->
+  <header class="topbar">
+    <div class="brand" aria-label="FLASH ARB">
+      <svg class="brand-bolt" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.2 2 4 13.6h6.3L9.4 22l9.6-12.4h-6.4L13.2 2Z"/></svg>
+      <div>
+        <strong>FLASH<span>//</span>ARB</strong>
+        <small>Polygon · Aave V3 · multi-DEX</small>
+      </div>
+    </div>
+
+    <div class="chips" role="status" aria-live="polite">
+      <span class="chip" id="chipRpc" title="RPC em uso"><i class="dot"></i><b>RPC</b> <span>conectando…</span></span>
+      <span class="chip" id="chipBlock" title="Último bloco analisado"><b>BLOCO</b> <span>—</span></span>
+      <span class="chip" id="chipGas" title="Preço do gás (base + gorjeta)"><b>GÁS</b> <span>—</span></span>
+      <span class="chip" id="chipFee" title="Taxa do flash loan lida on-chain (FLASHLOAN_PREMIUM_TOTAL)"><b>AAVE</b> <span>—</span></span>
+      <span class="chip chip-mode" id="chipMode"><b>MODO</b> <span>observação</span></span>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn btn-ghost" id="btnInstall" hidden>Instalar app</button>
+      <button class="btn btn-primary" id="btnScan" disabled>
+        <span class="btn-icon" aria-hidden="true">▶</span> <span class="btn-label">Iniciar scanner</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="ticker" aria-label="Preços on-chain">
+    <span>POL <b id="pxPOL">—</b></span>
+    <span>ETH <b id="pxETH">—</b></span>
+    <span>BTC <b id="pxBTC">—</b></span>
+    <span>LINK <b id="pxLINK">—</b></span>
+    <span>AAVE <b id="pxAAVE">—</b></span>
+    <span class="ticker-sep">│</span>
+    <span>varredura <b id="scanMs">—</b></span>
+    <span>cotações/bloco <b id="scanQuotes">—</b></span>
+    <span>rodízio <b id="scanCycle">—</b></span>
+  </div>
+
+  <div class="update-banner" id="updateBanner" hidden>
+    Nova versão disponível. <button class="btn btn-small" id="btnReload">Atualizar agora</button>
+  </div>
+
+  <div class="disclaimer" id="disclaimer" hidden>
+    <p><b>Ferramenta experimental.</b> Arbitragem entre DEXs na Polygon é disputada por robôs profissionais; o normal é ver o quadro quase todo vermelho.
+    O contrato reverte se não houver lucro (você não perde o empréstimo), mas tentativas enviadas custam gás. Não é recomendação financeira.</p>
+    <button class="btn btn-small" id="btnDisclaimer">Entendi</button>
+  </div>
+
+  <!-- ═══════════════ PAINEL ═══════════════ -->
+  <main class="layout">
+
+    <!-- ───── Configuração ───── -->
+    <aside class="panel config" aria-labelledby="cfgTitle">
+      <h2 id="cfgTitle"><span class="h-idx">01</span> Configuração</h2>
+
+      <section class="field">
+        <label for="loanUsd">Valor simulado do flash loan</label>
+        <div class="presets" role="group" aria-label="Valores rápidos">
+          <button class="chip-btn" data-loan="10000">10 mil</button>
+          <button class="chip-btn" data-loan="50000">50 mil</button>
+          <button class="chip-btn" data-loan="100000">100 mil</button>
+        </div>
+        <div class="input-affix"><span>US$</span><input id="loanUsd" type="number" min="10" step="100" inputmode="decimal"></div>
+        <p class="hint">Convertido para o token de cada par (ex.: 10.000 USDC ou o equivalente em WETH).</p>
+      </section>
+
+      <section class="field">
+        <label for="minProfitUsd">Lucro líquido mínimo</label>
+        <div class="input-affix"><span>US$</span><input id="minProfitUsd" type="number" min="0" step="0.5" inputmode="decimal"></div>
+        <p class="hint">Linha fica <span class="txt-green">verde</span> acima disso. O contrato também exige esse lucro on-chain (já descontado o gás).</p>
+      </section>
+
+      <section class="field two">
+        <div>
+          <label for="intervalMs">Intervalo (ms)</label>
+          <input id="intervalMs" type="number" min="1000" step="250">
+        </div>
+        <div>
+          <label for="pairsPerScan">Pares por bloco</label>
+          <input id="pairsPerScan" type="number" min="1" max="36" step="1">
+        </div>
+      </section>
+
+      <section class="field">
+        <span class="label">DEXs</span>
+        <div class="toggle-grid" id="dexList"></div>
+        <label class="check"><input type="checkbox" id="crossFeeTiers"> Comparar faixas de taxa da Uniswap V3 entre si</label>
+      </section>
+
+      <section class="field">
+        <span class="label">Pares <small id="pairCount"></small></span>
+        <div class="presets" role="group" aria-label="Seleção de pares">
+          <button class="chip-btn" data-pairs="all">Todos</button>
+          <button class="chip-btn" data-pairs="core">4 principais</button>
+          <button class="chip-btn" data-pairs="stable">Base estável</button>
+          <button class="chip-btn" data-pairs="none">Nenhum</button>
+        </div>
+        <div class="pair-grid" id="pairList"></div>
+      </section>
+
+      <details class="field">
+        <summary>RPCs públicos <small id="rpcAlive"></small></summary>
+        <ul class="rpc-list" id="rpcList"></ul>
+        <label for="rpcUrls">Um por linha (sem API key). O mais rápido é usado; troca sozinho se falhar.</label>
+        <textarea id="rpcUrls" rows="6" spellcheck="false"></textarea>
+        <div class="row">
+          <button class="btn btn-small" id="btnRpcSave">Salvar e testar</button>
+          <button class="btn btn-small btn-ghost" id="btnRpcReset">Restaurar padrão</button>
+        </div>
+      </details>
+
+      <section class="field">
+        <span class="label">Aave V3 · flash loan por ativo</span>
+        <table class="mini">
+          <thead><tr><th>Ativo</th><th>Status</th><th>Disponível</th></tr></thead>
+          <tbody id="aaveTable"><tr><td colspan="3" class="muted">aguardando primeira leitura…</td></tr></tbody>
+        </table>
+      </section>
+    </aside>
+
+    <!-- ───── Centro: simulação + oportunidades ───── -->
+    <section class="center">
+      <section class="panel paper" aria-labelledby="paperTitle">
+        <div class="paper-head">
+          <h2 id="paperTitle"><span class="h-idx">02</span> Modo simulação</h2>
+          <span class="muted">quanto o robô <em>teria</em> lucrado executando toda linha verde (sem gastar nada)</span>
+        </div>
+        <div class="paper-body">
+          <div class="paper-total">
+            <span class="paper-value" id="paperTotal">$0,00</span>
+            <span class="paper-sub"><b id="paperCount">0</b> oportunidades · melhor agora <b id="bestNow">—</b></span>
+          </div>
+          <canvas id="spark" width="600" height="90" aria-label="Melhor lucro líquido por varredura"></canvas>
+        </div>
+        <ul class="paper-hits" id="paperHits"></ul>
+      </section>
+
+      <section class="panel board" id="board" aria-labelledby="boardTitle">
+        <div class="board-head">
+          <h2 id="boardTitle"><span class="h-idx">03</span> Oportunidades ao vivo</h2>
+          <div class="board-tools">
+            <label class="check"><input type="checkbox" id="onlyPositive"> só positivas</label>
+            <span class="muted" id="boardInfo">—</span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="opps">
+            <thead>
+              <tr>
+                <th>Par</th>
+                <th>Rota (compra → venda)</th>
+                <th class="num" title="Retorno bruto entre as DEXs (já com as taxas das DEXs)">Spread</th>
+                <th class="num hide-sm">Bruto</th>
+                <th class="num hide-sm" title="Taxa do flash loan Aave">Aave</th>
+                <th class="num hide-sm">Gás</th>
+                <th class="num">Líquido</th>
+                <th class="hide-sm">Idade</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="oppBody">
+              <tr><td colspan="9" class="empty">Clique em <b>Iniciar scanner</b> para ler os preços direto da blockchain.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- ───── Execução ───── -->
+    <aside class="panel exec" aria-labelledby="execTitle">
+      <h2 id="execTitle"><span class="h-idx">04</span> Execução</h2>
+
+      <section class="field">
+        <label for="contractAddr">Contrato FlashArbitragePolygon</label>
+        <div class="row">
+          <input id="contractAddr" type="text" placeholder="0x… (endereço implantado)" spellcheck="false" autocomplete="off">
+          <button class="btn btn-small" id="btnContract">Conectar</button>
+        </div>
+        <div class="status-box" id="contractStatus">Nenhum contrato conectado. Sem ele dá para observar e simular o mercado.</div>
+      </section>
+
+      <section class="field">
+        <span class="label">Carteira (Rabby / MetaMask) — execução manual</span>
+        <div id="walletPick" class="wallet-pick"></div>
+        <div class="status-box" id="walletStatus">Desconectada.</div>
+        <button class="btn btn-small" id="btnAuthorize" hidden>Autorizar burner como executora</button>
+      </section>
+
+      <section class="field auto">
+        <span class="label">Piloto automático · burner wallet</span>
+        <p class="hint warn">Use uma carteira <b>nova e descartável</b>, só com um pouco de POL para gás. A chave fica apenas na memória deste navegador e nunca é enviada a lugar nenhum.</p>
+        <div class="row">
+          <input id="burnerKey" type="password" placeholder="Chave privada da burner (0x…)" autocomplete="off" spellcheck="false">
+          <button class="btn btn-small" id="btnBurner">Carregar</button>
+        </div>
+        <div class="row small">
+          <label class="check"><input type="checkbox" id="rememberBurner"> lembrar até fechar a aba</label>
+          <button class="link-btn" id="btnNewBurner">gerar burner nova</button>
+          <button class="link-btn" id="btnForgetBurner">esquecer</button>
+        </div>
+        <div class="secret-box" id="newBurnerBox" hidden></div>
+        <div class="status-box" id="burnerStatus">Nenhuma burner carregada.</div>
+
+        <div class="field two">
+          <div>
+            <label for="gasCapPol">Teto de gás (POL)</label>
+            <input id="gasCapPol" type="number" min="0" step="0.5">
+          </div>
+          <div>
+            <label for="priorityBoostPct">Gorjeta (%)</label>
+            <input id="priorityBoostPct" type="number" min="50" max="1000" step="10">
+          </div>
+        </div>
+
+        <label class="switch" for="autoToggle">
+          <input type="checkbox" id="autoToggle" role="switch">
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+          <span class="switch-label">AUTO-EXECUTE</span>
+        </label>
+      </section>
+
+      <section class="field">
+        <span class="label">Telemetria</span>
+        <dl class="stats" id="stats"></dl>
+      </section>
+
+      <section class="field">
+        <span class="label">Transações</span>
+        <ul class="tx-list" id="txList"><li class="muted">nenhuma ainda</li></ul>
+      </section>
+    </aside>
+
+    <!-- ───── Console ───── -->
+    <section class="panel console" aria-labelledby="logTitle">
+      <div class="console-head">
+        <h2 id="logTitle"><span class="h-idx">05</span> Console</h2>
+        <div class="console-tools" role="group" aria-label="Filtro de logs">
+          <button class="chip-btn active" data-log="all">tudo</button>
+          <button class="chip-btn" data-log="ok">oportunidades</button>
+          <button class="chip-btn" data-log="tx">transações</button>
+          <button class="chip-btn" data-log="error">erros</button>
+          <label class="check"><input type="checkbox" id="logScan" checked> blocos</label>
+          <button class="link-btn" id="btnClearLog">limpar</button>
+        </div>
+      </div>
+      <div class="log" id="log" role="log" aria-live="off"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>FLASH//ARB <span id="appVersion"></span> · 100% estático, sem servidor · dados direto da blockchain</span>
+    <span id="ethersSource"></span>
+  </footer>
+</body>
+</html>
