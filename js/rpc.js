@@ -18,6 +18,13 @@ export function isRevert(err) {
   return !!(info && typeof info.message === 'string' && /revert/i.test(info.message) && info.data);
 }
 
+/** Erro que se repetiria em qualquer RPC (revert, falta de gás no eth_call): não adianta trocar de nó. */
+export function isDeterministic(err) {
+  if (isRevert(err)) return true;
+  const msg = `${(err && err.message) || ''} ${(err && err.info && err.info.error && err.info.error.message) || ''}`;
+  return /out of gas|gas required exceeds|exceeds block gas limit|execution reverted/i.test(msg);
+}
+
 function withTimeout(promise, ms, label) {
   let timer;
   const timeout = new Promise((_, reject) => {
@@ -134,7 +141,7 @@ export class RpcPool {
         node.ok = true;
         return result;
       } catch (err) {
-        if (isRevert(err)) throw err;
+        if (isDeterministic(err)) throw err;
         lastErr = err;
         node.fails += 1;
         node.lastError = shortError(err);

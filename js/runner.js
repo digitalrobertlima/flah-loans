@@ -61,6 +61,7 @@ export class ArbRunner {
     this.log('info', 'Carregando ethers.js e testando os RPCs públicos…');
     this.engine = await Engine.create({
       rpcUrls: this.settings.rpcUrls,
+      timeoutMs: this.settings.rpcTimeoutMs,
       onRpcEvent: (ev) => this._onRpc(ev),
       log: (level, msg) => this.log(level, msg),
     });
@@ -109,7 +110,7 @@ export class ArbRunner {
     if (partial.pairIds) this.cursor = 0;
     if (rpcChanged && this.engine) {
       this.log('info', 'Lista de RPCs alterada — testando de novo…');
-      await this.engine.setRpcs(this.settings.rpcUrls, (ev) => this._onRpc(ev));
+      await this.engine.setRpcs(this.settings.rpcUrls, (ev) => this._onRpc(ev), this.settings.rpcTimeoutMs);
     }
     if (partial.minProfitUsd != null) {
       // reavalia o que é "verde" no quadro com o novo lucro mínimo

@@ -45,8 +45,12 @@ export const ADDR = {
   QUICK_V3_QUOTER: '0xa15F0D7377B2A0C0c10db057f641beD21028FC89', // Algebra
   // SushiSwap V2 (liquidez baixa na Polygon hoje — desligada por padrão)
   SUSHI_V2_ROUTER: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506',
-  // Multicall3 (mesmo endereço em todas as redes EVM)
+  // Multicall3 (mesmo endereço em todas as redes EVM) — usado para ler bloco, timestamp e base fee
   MULTICALL3: '0xcA11bde05977b3631167028862bE2a173976CA11',
+  // Multicall da Uniswap (UniswapInterfaceMulticall): permite LIMITE DE GÁS POR CHAMADA.
+  // Essencial para cotações: um pool sem liquidez faz o Quoter "andar" o preço até o fim e
+  // gastar dezenas de milhões de gás, o que derrubaria o eth_call inteiro.
+  MULTICALL_GAS: '0x1F98415757620B543A52E61c46B32eB19261F984',
 };
 
 export const TOKENS = {
@@ -114,6 +118,7 @@ export const DEFAULT_SETTINGS = {
   priorityBoostPct: 100, // 100 = gorjeta sugerida; 150 = 50% a mais (entra antes no bloco)
   gasCapPol: 2, // modo automático para sozinho se gastar isso de gás numa sessão
   rpcUrls: DEFAULT_RPCS,
+  rpcTimeoutMs: 8000,
   extraPairs: [], // pares customizados (usado nos testes)
 };
 
@@ -123,6 +128,9 @@ export const ABI = {
     'function getBlockNumber() view returns (uint256 blockNumber)',
     'function getCurrentBlockTimestamp() view returns (uint256 timestamp)',
     'function getBasefee() view returns (uint256 basefee)',
+  ],
+  uniMulticall: [
+    'function multicall((address target, uint256 gasLimit, bytes callData)[] calls) returns (uint256 blockNumber, (bool success, uint256 gasUsed, bytes returnData)[] returnData)',
   ],
   quoterV2: [
     'function quoteExactInputSingle((address tokenIn, address tokenOut, uint256 amountIn, uint24 fee, uint160 sqrtPriceLimitX96) params) returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate)',

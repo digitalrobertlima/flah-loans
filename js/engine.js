@@ -4,10 +4,11 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { loadEthers } from './eth.js';
-import { RpcPool, shortError, isRevert } from './rpc.js';
+import { RpcPool, shortError, isDeterministic } from './rpc.js';
 import * as C from './config.js';
 
-const CHUNK = 30; // chamadas por eth_call (Multicall3) — RPCs públicos não gostam de chamadas gigantes
+const CHUNK = 20; // chamadas por eth_call — RPCs públicos não gostam de chamadas gigantes
+const CALL_GAS = 1500000; // teto de gás de cada cotação dentro do multicall
 const SLOW_REFRESH_BLOCKS = 15; // a cada ~30 s relê taxa da Aave, liquidez, preços e gás
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
@@ -204,6 +205,7 @@ export class Engine {
     this.log = log;
     this.I = {
       mc: new E.Interface(C.ABI.multicall3),
+      umc: new E.Interface(C.ABI.uniMulticall),
       quoterV2: new E.Interface(C.ABI.quoterV2),
       algebra: new E.Interface(C.ABI.algebraQuoter),
       v2: new E.Interface(C.ABI.v2Router),
@@ -234,32 +236,20 @@ export class Engine {
     return new Engine(E, rpc, { log });
   }
 
-  async setRpcs(urls, onRpcEvent) {
-    this.rpc = new RpcPool(this.E, urls, { onEvent: onRpcEvent });
+  async setRpcs(urls, onRpcEvent, timeoutMs) {
+    this.rpc = new RpcPool(this.E, urls, { timeoutMs: timeoutMs || this.rpc.timeoutMs, onEvent: onRpcEvent });
     await this.rpc.probe();
   }
 
-  /** Executa várias leituras num único eth_call (Multicall3.aggregate3 com allowFailure). */
+  /**
+   * Executa várias leituras num único eth_call, com limite de gás POR CHAMADA
+   * (UniswapInterfaceMulticall). Uma cotação "maluca" falha sozinha sem derrubar o lote.
+   */
   async multicall(calls, blockTag = 'latest') {
     if (!calls.length) return [];
     const chunks = [];
     for (let i = 0; i < calls.length; i += CHUNK) chunks.push(calls.slice(i, i + CHUNK));
-    const parts = await Promise.all(
-      chunks.map((chunk) =>
-        this.rpc.run('multicall', async (provider) => {
-          const data = this.I.mc.encodeFunctionData('aggregate3', [chunk.map((c) => [c.target, true, c.callData])]);
-          let raw;
-          try {
-            raw = await provider.call({ to: C.ADDR.MULTICALL3, data, blockTag });
-          } catch (err) {
-            if (blockTag === 'latest' || isRevert(err)) throw err;
-            raw = await provider.call({ to: C.ADDR.MULTICALL3, data }); // nó atrasado: usa o último bloco
-          }
-          const [results] = this.I.mc.decodeFunctionResult('aggregate3', raw);
-          return results.map((r) => ({ success: r[0], data: r[1] }));
-        }),
-      ),
-    );
+    const parts = await Promise.all(chunks.map((chunk) => this._multicallChunk(chunk, blockTag)));
     return parts.flat().map((r, i) => {
       if (!r || !r.success) return null;
       try {
@@ -268,6 +258,31 @@ export class Engine {
         return null;
       }
     });
+  }
+
+  async _multicallChunk(chunk, blockTag) {
+    const data = this.I.umc.encodeFunctionData('multicall', [chunk.map((c) => [c.target, c.gas || CALL_GAS, c.callData])]);
+    try {
+      const raw = await this.rpc.run('multicall', async (provider) => {
+        try {
+          return await provider.call({ to: C.ADDR.MULTICALL_GAS, data, blockTag });
+        } catch (err) {
+          if (blockTag === 'latest' || isDeterministic(err)) throw err;
+          return provider.call({ to: C.ADDR.MULTICALL_GAS, data }); // nó atrasado: usa o último bloco
+        }
+      });
+      const [, results] = this.I.umc.decodeFunctionResult('multicall', raw);
+      return results.map((r) => ({ success: r[0], data: r[2] }));
+    } catch (err) {
+      if (!isDeterministic(err)) throw err;
+      // o lote inteiro estourou o limite de gás do RPC: divide ao meio e tenta de novo
+      if (chunk.length > 1) {
+        const mid = Math.ceil(chunk.length / 2);
+        const [a, b] = await Promise.all([this._multicallChunk(chunk.slice(0, mid), blockTag), this._multicallChunk(chunk.slice(mid), blockTag)]);
+        return [...a, ...b];
+      }
+      return [{ success: false, data: '0x' }];
+    }
   }
 
   /** Monta a chamada de cotação (sem executar nada) para uma DEX. */

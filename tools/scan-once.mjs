@@ -51,7 +51,15 @@ Object.values(C.TOKENS).forEach((t, i) => {
 console.log('\nVarrendo todos os pares…');
 const results = [];
 for (let i = 0; i < Math.ceil(runner.settings.pairIds.length / runner.settings.pairsPerScan); i++) {
-  results.push(await runner.scanOnce());
+  try {
+    results.push(await runner.scanOnce());
+  } catch (err) {
+    check(false, `varredura ${i + 1} falhou: ${err.shortMessage || err.message}`);
+  }
+}
+if (!results.length) {
+  console.error('Nenhuma varredura completou.');
+  process.exit(1);
 }
 const last = results[results.length - 1];
 

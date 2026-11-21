@@ -75,6 +75,20 @@ interface ITestAlgebraFactory {
     function poolByPair(address tokenA, address tokenB) external view returns (address);
 }
 
+interface ITestQuoterV2 {
+    struct QuoteExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint256 amountIn;
+        uint24 fee;
+        uint160 sqrtPriceLimitX96;
+    }
+
+    function quoteExactInputSingle(QuoteExactInputSingleParams memory params)
+        external
+        returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate);
+}
+
 interface ITestAavePool {
     function flashLoanSimple(
         address receiverAddress,
@@ -96,15 +110,23 @@ contract FlashArbitragePolygonForkTest is Test {
     address constant QUICK_V3 = 0xf5b509bB0909a69B1c207E495f687a596C168E12;
     address constant SUSHI_V2 = 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506;
 
-    address owner = makeAddr("owner");
-    address executor = makeAddr("executor");
-    address stranger = makeAddr("stranger");
-    address whale = makeAddr("whale");
+    address constant UNI_QUOTER_V2 = 0x61fFE014bA17989E743c5F6cB21bF9697530B21e;
+
+    // Rótulos únicos: endereços "famosos" do Foundry (makeAddr("owner")...) já têm código
+    // na Polygon real (robôs varredores via EIP-7702) e engoliriam o POL dos testes.
+    address owner = makeAddr("flasharb.test.owner.7c1e");
+    address executor = makeAddr("flasharb.test.executor.7c1e");
+    address stranger = makeAddr("flasharb.test.stranger.7c1e");
+    address whale = makeAddr("flasharb.test.whale.7c1e");
 
     FlashArbitragePolygon arb;
 
     function setUp() public {
         require(block.chainid == 137, "Rode com --fork-url apontando para a Polygon");
+        vm.etch(owner, bytes(""));
+        vm.etch(executor, bytes(""));
+        vm.etch(stranger, bytes(""));
+        vm.etch(whale, bytes(""));
         vm.prank(owner);
         arb = new FlashArbitragePolygon();
         vm.prank(owner);
@@ -153,6 +175,30 @@ contract FlashArbitragePolygonForkTest is Test {
         vm.deal(to, amount);
         vm.prank(to);
         IWPOL(WPOL).deposit{value: amount}();
+    }
+
+    /// @dev Faixa de taxa da Uniswap V3 que devolve mais `tokenOut` (a liquidez muda de pool com o tempo).
+    function _bestUniFee(address tokenIn, address tokenOut, uint256 amountIn) internal returns (uint24 best) {
+        uint24[4] memory fees = [uint24(100), 500, 3000, 10000];
+        uint256 bestOut;
+        for (uint256 i = 0; i < fees.length; i++) {
+            try ITestQuoterV2(UNI_QUOTER_V2).quoteExactInputSingle(
+                ITestQuoterV2.QuoteExactInputSingleParams({
+                    tokenIn: tokenIn,
+                    tokenOut: tokenOut,
+                    amountIn: amountIn,
+                    fee: fees[i],
+                    sqrtPriceLimitX96: 0
+                })
+            ) returns (uint256 out, uint160, uint32, uint256) {
+                if (out > bestOut) {
+                    bestOut = out;
+                    best = fees[i];
+                }
+            } catch {}
+        }
+        require(bestOut > 0, "Nenhum pool Uniswap V3 com liquidez");
+        console2.log("melhor faixa Uniswap V3 (fee):", uint256(best));
     }
 
     /// @dev Limita o valor emprestado para não esbarrar na liquidez disponível da Aave.
@@ -294,12 +340,13 @@ contract FlashArbitragePolygonForkTest is Test {
     /// Rota: empresta WPOL -> vende WPOL na Uniswap V3 (preço justo) -> recompra WPOL barato na QuickSwap V2.
     function test_Profit_UniV3_to_QuickV2() public {
         uint256 reserve = _v2Reserve(WPOL, USDCE);
-        uint256 dump = reserve / 8;
+        uint256 dump = reserve / 4;
         _giveWpol(whale, dump);
         _swapV2(whale, WPOL, USDCE, dump);
 
-        uint256 amount = _cap(reserve / 50);
-        FlashArbitragePolygon.ArbParams memory p = _params(USDCE, _uni(500), _quickV2(), 1);
+        uint256 amount = _cap(reserve / 200);
+        uint24 fee = _bestUniFee(WPOL, USDCE, amount);
+        FlashArbitragePolygon.ArbParams memory p = _params(USDCE, _uni(fee), _quickV2(), 1);
         _runAndCheckProfit(WPOL, amount, p);
     }
 
@@ -330,7 +377,8 @@ contract FlashArbitragePolygonForkTest is Test {
         _swapAlgebra(whale, WPOL, USDCE, dump);
 
         uint256 amount = _cap(poolWpol / 60);
-        FlashArbitragePolygon.ArbParams memory p = _params(USDCE, _uni(500), _quickV3(), 1);
+        uint24 fee = _bestUniFee(WPOL, USDCE, amount);
+        FlashArbitragePolygon.ArbParams memory p = _params(USDCE, _uni(fee), _quickV3(), 1);
         _runAndCheckProfit(WPOL, amount, p);
     }
 
@@ -352,9 +400,10 @@ contract FlashArbitragePolygonForkTest is Test {
     /// Alguém de fora pede flash loan na Aave apontando para o nosso contrato: precisa reverter.
     function test_ForeignFlashLoanIsRejected() public {
         FlashArbitragePolygon.ArbParams memory p = _params(USDCE, _uni(500), _quickV2(), 0);
+        address pool = arb.AAVE_V3_POOL();
         vm.prank(stranger);
         vm.expectRevert(bytes("Iniciador invalido"));
-        ITestAavePool(arb.AAVE_V3_POOL()).flashLoanSimple(address(arb), WPOL, 1 ether, abi.encode(p), 0);
+        ITestAavePool(pool).flashLoanSimple(address(arb), WPOL, 1 ether, abi.encode(p), 0);
     }
 
     function test_RouterMustBeWhitelisted() public {

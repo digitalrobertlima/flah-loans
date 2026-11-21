@@ -23,14 +23,13 @@ const RPC = process.env.ANVIL_URL || 'http://127.0.0.1:8545';
 const net = new ethers.Network('polygon-fork', 137n);
 const provider = new ethers.JsonRpcProvider(RPC, net, { staticNetwork: net, batchMaxCount: 1 });
 
-// Contas padrão do anvil (chaves públicas e conhecidas — só servem no fork local)
-const OWNER_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const BURNER_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
-const WHALE_KEY = '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a';
-
-const owner = new ethers.Wallet(OWNER_KEY, provider);
-const burner = new ethers.Wallet(BURNER_KEY, provider);
-const whale = new ethers.Wallet(WHALE_KEY, provider);
+// Carteiras novas e aleatórias a cada execução (as contas padrão do anvil são conhecidas
+// e, na Polygon real, já têm "robôs varredores" pendurados nelas via EIP-7702).
+const owner = ethers.Wallet.createRandom().connect(provider);
+const burnerWallet = ethers.Wallet.createRandom();
+const burner = burnerWallet.connect(provider);
+const BURNER_KEY = burnerWallet.privateKey;
+const whale = ethers.Wallet.createRandom().connect(provider);
 
 const WPOL = C.TOKENS.WPOL.address;
 const USDCE = C.TOKENS['USDC.e'].address;
@@ -75,6 +74,7 @@ const runner = new ArbRunner({
     minProfitUsd: 0.01,
     intervalMs: 500,
     gasCapPol: 50,
+    rpcTimeoutMs: 180000, // o anvil busca o estado da Polygon sob demanda: a 1ª leitura é lenta
   },
   emit: (type, d) => {
     if (type === 'log') {
@@ -86,6 +86,7 @@ const runner = new ArbRunner({
 
 try {
   console.log(`Fork em ${RPC} · bloco ${await provider.getBlockNumber()}`);
+  for (const w of [owner, burner]) await provider.send('anvil_setBalance', [w.address, ethers.toBeHex(ethers.parseEther('1000'))]);
 
   // 1. Deploy
   const artifact = JSON.parse(readFileSync(new URL('../out/FlashArbitragePolygon.sol/FlashArbitragePolygon.json', import.meta.url), 'utf8'));
@@ -101,15 +102,15 @@ try {
   const reserve = await quickReserveWpol();
   console.log(`Reserva de WPOL no par QuickSwap V2 WPOL/USDC.e: ${ethers.formatEther(reserve)}`);
   await provider.send('anvil_setBalance', [whale.address, ethers.toBeHex(10n ** 30n)]);
-  await whaleDump(reserve / 8n);
-  console.log('Baleia despejou 1/8 da reserva de WPOL na QuickSwap V2');
+  await whaleDump(reserve / 4n);
+  console.log('Baleia despejou 1/4 da reserva de WPOL na QuickSwap V2');
 
   // 3. Scanner encontra a oportunidade
   await runner.init();
   await runner.engine.slowRefresh(runner.settings);
   const price = runner.engine.state.prices.WPOL;
   check(price > 0, `preço do WPOL lido on-chain: $${price}`);
-  let loanWpol = Number(ethers.formatEther(reserve / 50n));
+  let loanWpol = Number(ethers.formatEther(reserve / 200n));
   if (loanWpol > 100000) loanWpol = 100000;
   await runner.setSettings({ loanUsd: Math.round(loanWpol * price) });
   const res = await runner.scanOnce(['E2E-WPOL-USDCe']);
@@ -146,7 +147,7 @@ try {
   check(!bad.ok && /Sem lucro liquido/.test(bad.reason || ''), `rota com prejuízo barrada na simulação: "${bad.reason}"`);
 
   // 6. Piloto automático
-  await whaleDump(reserve / 10n);
+  await whaleDump(reserve / 6n);
   const before = runner.stats.success;
   runner.setAuto(true);
   const t0 = Date.now();
